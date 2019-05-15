@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>贪吃蛇</title>
+<style>
+*{
+  margin:0;
+  padding:0;
+}
+#content {
+  margin-top:20px;
+  display: flex;
+  margin-bottom:20px;
+}
+#title, #score, #maxscore{
+  flex:1;
+  text-align:center;
+  height:100px;
+}
+#title{
+  margin-left:80px;
+  line-height:100px;
+  background:#00BFFF;
+  color:white;
+  font-size:2rem;
+}
+#score{
+  background:#EEE4DA;
+  line-height:50px;
+}
+#maxscore{
+  background:#F0F0F0;
+  margin-right:80px;
+  line-height:50px;
+}
+
+.row{
+  height:40px;
+  
+}
+.col, .snake, .food{
+  height:40px;
+  width:40px;
+  float:left;
+}
+.col{
+  background:#EEE4DA;
+  border:1px solid white;
+}
+.snake{
+  background:yellowgreen;
+  border:1px solid white;
+}
+.food{
+  background:red;
+  border:1px solid white;
+}
+#promote{
+  margin-top:20px;
+  text-align:center;
+}
+#promote button{
+	height:60px;
+	background:#96D5F3;
+	color:white;
+	font-size:1.5rem;
+	border-radius:10px;
+	margin-top:10px;
+	width:100%;
+}
+#direction{
+	margin-top:20px;
+	text-align:center;
+}
+#direction button{
+	font-size:1.5rem;
+	width:200px;
+	height:80px;
+	margin:50px;
+	border-radius:20px;
+}
+#direction button#U,button#D{background:#96D5F3;}
+#direction button#L,button#R{background:red;}
+
+
+
+
+</style>
+</head>
+<body>
+
+<div id="content">
+   <div id="title">Snake</div>
+   <div id="score"><p>Score</p><p>0</p></div>
+   <div id="maxscore"><p>Max Score</p><p>0</p></div>
+</div>
+
+<div id="ground">
+	
+</div>
+<div style="height:10px;"></div>
+<div id="promote">
+	<button onclick="gamestart()">重新开始游戏</button>
+</div>
+
+<div id="direction">
+	<button id="U" onclick="up()">UP</button><br>
+	<button id="L" onclick="left()">LEFT</button>
+	<button id="R" onclick="right()">RITHT</button><br>
+	<button id="D" onclick="down()">DOWN</button>
+</div>
+<script>
+//直接在外部定义的变量是全局变量
+var gmap;//0是地图，1是蛇，2是食物
+var Snake;//存放蛇的数组
+var direction;//蛇移动的方向 R L D U
+var rows;//行的个数
+var cols;//列的个数
+var timer;//定时器
+var food;
+var isEatFood = false;//boolean
+var speed = 5;
+var score = 0;
+var maxscore = 0;
+	window.onload = function(){
+		InitPage();
+		gamestart();
+		
+	};
+	function InitPage(){
+		var gd = document.getElementById("ground");
+		rows = 20;
+		rows = window.prompt("请输入行数：", "20");
+		cols = parseInt((gd.offsetWidth-160) / 42);
+		
+		//重新计算画布整体大小
+		calcground(gd.offsetWidth, cols);
+	}
+	function gamestart(){
+		InitGround();
+		InitSnake(3);
+		InitFood();
+		timer=setInterval(function(){
+            paint();
+		    move();
+			keyEvent();
+			eatFood();
+        },500/speed);
+	};
+
+	function eatFood(){
+		//console.log(Snake[Snake.length-1][1]+"||"+food[1]);
+		if(Snake[Snake.length-1][0] == food[0] && Snake[Snake.length-1][1] == food[1]){
+			score+=10;
+			maxscore = (maxscore > score) ? maxscore : score; 
+			InitFood();
+			isEatFood = true;
+			return;
+		}
+		isEatFood = false;
+	};
+
+	function up(){direction = 'U'};
+	function down(){direction = 'D'};
+	function left(){direction = 'L'};
+	function right(){direction = 'R'};
+	function keyEvent(){
+		//全局监听
+	    window.onkeydown=function (e) { 
+			//e.keyCode U38 D40 L37 R39
+			
+			if (e.keyCode==38){
+				direction = 'U'
+			}else if(e.keyCode==40){
+				direction = 'D'
+			}else if(e.keyCode==37){
+				direction = 'L'
+			}else if(e.keyCode==39){
+				direction = 'R'
+			}
+		}
+	}
+	function isDie(){
+		var first = Snake[Snake.length - 1];
+		//console.log(first[0] + " || " + first[1] + " || " + rows + "||" + cols);
+		if(first[0] < 0 || first[1] > cols - 1 || first[1] < 0 || first[0] > rows - 1){
+			gmap = null;
+			Snake = null;
+			food = null;
+			isEatFood = false;//boolean
+			score = 0;
+			window.clearInterval(timer);
+		}
+	}
+	function move(){
+
+		//移动前需要判断是否超出边界，因为要超出边界也是头先超出边界
+		isDie();
+
+		//也就是改变在逻辑地图gmap中的snake的值
+		//去尾加头  Snake = 00,01,02
+		var head = Snake.shift();
+		gmap[head[0]][head[1]] = 0;
+		if(isEatFood){
+			gmap[head[0]][head[1]] = 1;
+			Snake.unshift(head);
+		}
+		//加头，也就是在snake的末尾添加一个元素
+		//找最后一个元素
+		var last = Snake[Snake.length - 1];
+		var node = NaN;
+		switch(direction){
+			case 'R':
+			node = new Array(last[0],last[1] + 1);
+			break;
+			case 'L':
+			node = new Array(last[0],last[1] - 1);
+			break;
+			case 'U':
+			node = new Array(last[0] - 1,last[1]);
+			break;
+			case 'D':
+			node = new Array(last[0] + 1,last[1]);
+			break;
+		}
+		//新头加入,也就是数组尾部加入
+	    Snake.push(node);
+		gmap[node[0]][node[1]] = 1;
+		
+	};
+	function InitFood(){
+		var x=Math.floor(Math.random()*rows);
+        var y=Math.floor(Math.random()*cols);
+        gmap[x][y]=2;
+		food = null;
+		food = new Array(x, y);
+	};
+	function InitSnake(len){
+		Snake = new Array();//先声明后赋值
+		for(var i=0;i<len;i++){
+           gmap[0][i]=1;
+		   var arr = new Array();
+		   arr[0] = 0;
+		   arr[1] = i;
+           Snake[i] = arr;
+       }
+	   direction = 'R';
+	   //console.log("Snake: " + gmap );
+	};
+	
+	function calcground(w, cols){
+		var newmargin = parseInt((w - cols * 42) / 2);
+        var	title = document.getElementById('title');
+		title.style.marginLeft = newmargin +"px";
+		var	maxscore = document.getElementById('maxscore');
+		maxscore.style.marginRight = newmargin +"px";
+		var gd = document.getElementById('ground');
+		gd.style.marginLeft = newmargin +"px";
+		gd.style.marginRight = newmargin +"px";
+		var pd = document.getElementById('promote');
+		pd.style.marginLeft = newmargin +"px";
+		pd.style.marginRight = newmargin +"px";
+	};
+	//画布只初始化一次
+	function InitGround(){
+		
+		//不用var声明，这里是全局变量
+		gmap = new Array();
+		
+		for(var i=0;i<rows;i++){
+			var grow = new Array();
+			var k = 0;
+			for(var j=0;j<cols;j++){
+				grow[k] = 0;
+				k++;
+			}
+			gmap[i] = grow;
+		}
+		//console.log("gmap: " + gmap );
+	};
+	function clean(){
+		//画之前，需要清除画布
+		var gd = document.getElementById("ground");
+		//得到所有的行div对象
+		var rows = document.getElementsByClassName("row");
+		while(rows[0]!= null){
+			rows[0].parentNode.removeChild(rows[0])
+		}
+	}
+	function paint(){
+		
+		clean();
+		//新建
+		var gd = document.getElementById("ground");
+		for(var i=0;i<rows;i++){
+			var row = document.createElement("div");
+			row.className = "row";
+			for(var j=0;j<cols;j++){
+				var col = document.createElement("div");
+				if(gmap[i][j] == 0){//地图
+					col.className = "col";
+				}else if (gmap[i][j] == 1){
+				    col.className = "snake";
+				}else if(gmap[i][j] == 2){
+					col.className = "food";
+				}
+				//col.innerHTML = i + ","+ j;
+				row.appendChild(col);
+			}
+			gd.appendChild(row);
+		}
+		//scroe
+		var se = document.getElementById('score');
+		var num = se.getElementsByTagName('p')[1];
+		num.innerHTML=score;
+		var mxse = document.getElementById('maxscore');
+		var mxnum = mxse.getElementsByTagName('p')[1];
+		mxnum.innerHTML=maxscore;
+	};
+
+</script>
+
+</body>
+</html>
